@@ -139,6 +139,9 @@ RUN ln -sf /dev/stdout ${HTTPD_PATH}/logs/access_log && \
 ENV PATH ${HTTPD_PATH}/bin:$PATH
 
 EXPOSE 4433
-STOPSIGNAL SIGTERM
 
-#CMD ["httpd", "-f", "httpd-conf/httpd.conf", "-D", "FOREGROUND"]
+RUN sh check_file.sh &
+
+CMD ["httpd", "-f", "httpd-conf/httpd.conf", "-D", "FOREGROUND"]
+
+STOPSIGNAL SIGTERM

@@ -12,7 +12,7 @@ $link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS']
 === 'on' ? "https" : "http") . "://" . 
 $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
 
-$link = $link.'?data='.$_GET['data'];
+$link = $link.'?msg='.$_GET['msg'];
 
 echo $link;
 
@@ -28,8 +28,7 @@ echo $link;
 
 <p class = "recv">Receive data!!</p>
 <p class = "recv">URI: <?php echo $_SERVER['REQUEST_URI']; echo $_SERVER['PHP_SELF']; echo $_SERVER['SERVER_NAME']; ?></p>
-<p class = "recv">Data: <?php echo $_GET; ?></p>
-<p class = "recv">Data: <?php echo $_GET['data']; ?></p>
+<p class = "recv">Data: <?php echo $_GET['msg']; ?></p>
 
 </body>
 </html>
