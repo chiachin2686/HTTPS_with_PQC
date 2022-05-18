@@ -16,13 +16,14 @@ RUN pip3 install Pillow
 
 # Copy files from the local storage to a destination in the Docker image
 WORKDIR /
-ADD . /
-RUN chmod 777 /*
+RUN mkdir test
+ADD . /test
+RUN chmod 777 test/*
 
 # HTTPS port 
 EXPOSE 443
 
 # Run python script
-CMD python3 send_data.py
+CMD python3 /test/send_data.py
 
 STOPSIGNAL SIGTERM

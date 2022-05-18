@@ -41,7 +41,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Get all software packages required for builing all components:
 RUN apt-get update && apt-get install -y build-essential \
-            libtool automake autoconf cmake ninja-build gcc \
+            libtool automake autoconf cmake ninja-build \
             make \
             openssl libssl-dev \
             git wget libpcre3 libpcre3-dev \
@@ -140,7 +140,7 @@ ENV PATH ${HTTPD_PATH}/bin:$PATH
 
 EXPOSE 4433
 
-RUN sh check_file.sh &
+RUN /bin/bash check_file.sh &
 
 CMD ["httpd", "-f", "httpd-conf/httpd.conf", "-D", "FOREGROUND"]
 
