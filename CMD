@@ -1,0 +1,39 @@
+### MAPS6 HTTPS using Curl
+
+# simple building
+docker build -f Dockerfile -t oqs-curl .
+
+# simple running
+docker run -it --name MAPS6_curl oqs-curl
+
+# run with environment var.
+docker run -e KEM_ALG=kyber512 -e SIG_ALG=dilithium2 -it --name MAPS6_curl oqs-curl
+
+# combination
+docker run -it --name MAPS6_curl oqs-curl curl --curves kyber512 https://localhost:4433
+
+# use curl command
+curl --curves kyber512 https://localhost:4433
+
+curl --key client.key --cert client.crt --cacert CA.crt --tlsv1.3 --tls13-ciphers TLS_AES_128_GCM_SHA256 -X GET -v https://203.145.221.100:4433/index.php?data=123 
+#option [-k]: insecure
+
+# generate key & cert.
+openssl req -new -newkey dilithium2 -keyout client.key -out client.csr -nodes -subj "/O=test-client/CN=203.145.215.105"
+
+openssl x509 -req -in client.csr -out client.crt -CA CA.crt -CAkey CA.key -CAcreateserial -days 365
+
+###----------------------------------------------------###
+###----------------------------------------------------###
+### AWS Server using Apache server(httpd)
+
+# simple building
+docker build -f Dockerfile -t oqs-httpd .
+
+docker build --build-arg SIP=203.145.215.169 -f Dockerfile -t oqs-httpd .
+
+# simple running
+docker run -it[d] -p 4433:4433 --name server_httpd oqs-httpd
+
+# activate httpd server
+httpd -f httpd-conf/httpd.conf -D FOREGROUND

@@ -1,0 +1,144 @@
+# Multi-stage build: First the full builder image:
+
+# First: global build arguments: 
+
+# liboqs build type variant; maximum portability of image:
+ARG LIBOQS_BUILD_DEFINES="-DOQS_DIST_BUILD=ON"
+
+# installation paths
+ARG OPENSSL_PATH=/opt/openssl
+ARG HTTPD_PATH=/opt/httpd
+
+# defines the QSC signature algorithm used for the certificates:
+ARG SIG_ALG="dilithium2"
+
+# define the httpd version to include
+ARG HTTPD_VERSION=2.4.43
+
+# Define the degree of parallelism when building the image; leave the number away only if you know what you are doing
+ARG MAKE_DEFINES="-j 2"
+
+# define IP addresses or Domain Name
+ARG SIP=localhost
+
+# FROM alpine:3.13 as intermediate
+FROM ubuntu:20.04 AS intermediate
+
+# Take in global args
+ARG LIBOQS_BUILD_DEFINES
+ARG OPENSSL_PATH
+ARG HTTPD_PATH
+ARG SIG_ALG
+ARG HTTPD_VERSION
+ARG MAKE_DEFINES
+ARG SIP
+
+COPY . /home
+
+# Set timezone
+ENV TZ=Asia/Taipei
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Get all software packages required for builing all components:
+RUN apt-get update && apt-get install -y build-essential \
+            libtool automake autoconf cmake ninja-build gcc \
+            make \
+            openssl libssl-dev \
+            git wget libpcre3 libpcre3-dev \
+            expat libexpat1-dev
+
+# get sources
+WORKDIR /opt
+RUN git clone --depth 1 --branch main https://github.com/open-quantum-safe/liboqs && \
+    git clone --depth 1 --branch OQS-OpenSSL_1_1_1-stable https://github.com/open-quantum-safe/openssl ossl-src && \
+    wget http://mirror.easyname.ch/apache//apr/apr-1.7.0.tar.gz && tar xzvf apr-1.7.0.tar.gz && \
+    wget http://mirror.easyname.ch/apache//apr/apr-util-1.6.1.tar.gz && tar xzvf apr-util-1.6.1.tar.gz && \
+    wget --trust-server-names "https://archive.apache.org/dist/httpd/httpd-${HTTPD_VERSION}.tar.gz" && tar -zxvf httpd-${HTTPD_VERSION}.tar.gz;
+
+# build liboqs (static linking only)
+WORKDIR /opt/liboqs
+RUN mkdir build-static && cd build-static && cmake -G"Ninja" .. ${LIBOQS_BUILD_DEFINES} -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/opt/ossl-src/oqs && ninja && ninja install
+
+# build OQS-OpenSSL
+WORKDIR /opt/ossl-src
+RUN ./config no-shared --prefix=${OPENSSL_PATH} && \
+    make ${MAKE_DEFINES} && make install_sw;
+
+# build httpd
+WORKDIR /opt
+RUN sed -i "s/\$RM \"\$cfgfile\"/\$RM -f \"\$cfgfile\"/g" apr-1.7.0/configure && \
+    cd apr-1.7.0 && ./configure && make ${MAKE_DEFINES} && make install && cd .. && \
+    cd apr-util-1.6.1 && ./configure x86_64-pc-linux-gnu --with-crypto --with-apr=/usr/local/apr && make ${MAKE_DEFINES} && make install
+
+WORKDIR /opt/httpd-${HTTPD_VERSION}
+RUN ./configure --prefix=${HTTPD_PATH} \
+                    --enable-debugger-mode \
+                    --enable-ssl --with-ssl=${OPENSSL_PATH} \
+                    --enable-ssl-staticlib-deps \
+                    --enable-mods-static=ssl && \
+    sed -i "s/-lpthread/-lpthread -L\/opt\/openssl\/lib -loqs/g" build/config_vars.mk && \
+    make ${MAKE_DEFINES} && make install;
+
+# prepare to run httpd
+ARG OPENSSL_CNF=/opt/ossl-src/apps/openssl.cnf
+
+WORKDIR ${HTTPD_PATH}
+    # generate server CSR
+    # generate server cert
+RUN set -x && \
+    mkdir pki && \
+    mkdir cacert && \
+    # ${OPENSSL_PATH}/bin/openssl req -x509 -new -newkey ${SIG_ALG} -keyout cacert/CA.key -out cacert/CA.crt -nodes -subj "/CN=oqstest CA" -days 365 -config ${OPENSSL_CNF} && \
+    mv /home/certs/* ${HTTPD_PATH}/cacert/ && \
+    ${OPENSSL_PATH}/bin/openssl req -new -newkey ${SIG_ALG} -keyout pki/server.key -out pki/server.csr -nodes -subj "/O=oqs-httpd/CN=${SIP}" -config ${OPENSSL_CNF} && \
+    ${OPENSSL_PATH}/bin/openssl x509 -req -in pki/server.csr -out pki/server.crt -CA cacert/CA.crt -CAkey cacert/CA.key -CAcreateserial -days 365
+
+# Change PHP file
+RUN mv /home/index.php ${HTTPD_PATH}/htdocs/
+
+# Some size optimization:
+RUN rm -rf ${HTTPD_PATH}/bin/ab
+
+# second stage: Only create minimal image without build tooling and intermediate build results generated above:
+# FROM alpine:3.13
+FROM ubuntu:20.04
+# Take in global args
+ARG HTTPD_PATH
+ARG OPENSSL_PATH
+ARG SIP
+
+# Set timezone
+ENV TZ=Asia/Taipei
+ENV DEBIAN_FRONTEND=noninteractive
+#
+RUN apt-get update && apt-get install -y build-essential libpcre3 libpcre3-dev expat libexpat1-dev
+RUN apt-get install -y php libapache2-mod-php
+
+#
+# Only retain the ${*_PATH} contents in the final image
+COPY --from=intermediate ${HTTPD_PATH} ${HTTPD_PATH}
+# copy over manually build libapr{util}
+COPY --from=intermediate /usr/local/apr/lib  /usr/local/apr/lib
+
+#Enable this if you want to have openssl also in this image
+#COPY --from=intermediate ${OPENSSL_PATH}/apps/openssl ${OPENSSL_PATH}
+COPY --from=intermediate ${OPENSSL_PATH} ${OPENSSL_PATH}
+
+COPY httpd-conf/httpd-ssl.conf ${HTTPD_PATH}/httpd-conf/httpd-ssl.conf
+COPY httpd-conf/httpd.conf ${HTTPD_PATH}/httpd-conf/httpd.conf
+WORKDIR ${HTTPD_PATH}
+
+RUN sed -i 's/ServerName\ httpd.aws-demo.org/ServerName\ '${SIP}'/g' ${HTTPD_PATH}/httpd-conf/httpd.conf && \
+    sed -i 's/ServerName\ httpd.aws-demo.org:4433/ServerName\ '${SIP}':4433/g' ${HTTPD_PATH}/httpd-conf/httpd-ssl.conf
+
+# forward request and error logs to docker log collector
+RUN ln -sf /dev/stdout ${HTTPD_PATH}/logs/access_log && \
+    ln -sf /dev/stderr ${HTTPD_PATH}/logs/error_log;
+
+# Ensure httpd just runs
+ENV PATH ${HTTPD_PATH}/bin:$PATH
+
+EXPOSE 4433
+STOPSIGNAL SIGTERM
+
+#CMD ["httpd", "-f", "httpd-conf/httpd.conf", "-D", "FOREGROUND"]
