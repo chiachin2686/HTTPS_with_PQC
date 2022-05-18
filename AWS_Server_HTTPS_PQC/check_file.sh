@@ -20,7 +20,7 @@ function file_existed(){
     local check_time=30
     while [[ true ]]; do
         if [ -f ${file_path} ]; then  # file exists
-            cat ${file_path} | awk '{print $7}' > sensor_data.txt
+            cat ${file_path} | awk '{print $7}' > /db/data/sensor_data.txt
             echo "${file_path} exists."
             rm /opt/httpd/logs/ssl_request_log
         else
@@ -30,7 +30,7 @@ function file_existed(){
     done
 }
 
-touch sensor_data.txt
+touch /db/data/sensor_data.txt
 
 file_existed
 

@@ -6,6 +6,11 @@ docker build -f Dockerfile -t oqs-curl .
 # simple running
 docker run -it --name MAPS6_curl oqs-curl
 
+docker run -p 4433:4433 -itd \
+--net=host \
+--name MAPS6_curl \
+oqs-curl
+
 # run with environment var.
 docker run -e KEM_ALG=kyber512 -e SIG_ALG=dilithium2 -it --name MAPS6_curl oqs-curl
 
@@ -15,7 +20,7 @@ docker run -it --name MAPS6_curl oqs-curl curl --curves kyber512 https://localho
 # use curl command
 curl --curves kyber512 https://localhost:4433
 
-curl --key client.key --cert client.crt --cacert CA.crt --tlsv1.3 --tls13-ciphers TLS_AES_128_GCM_SHA256 -X GET -v https://203.145.221.100:4433/index.php?data=123 
+curl --key client.key --cert client.crt --cacert CA.crt --tlsv1.3 --tls13-ciphers TLS_AES_128_GCM_SHA256 -X GET -v https://34.215.240.96:4433/index.php?data=123 
 #option [-k]: insecure
 
 # generate key & cert.
@@ -25,15 +30,33 @@ openssl x509 -req -in client.csr -out client.crt -CA CA.crt -CAkey CA.key -CAcre
 
 ###----------------------------------------------------###
 ###----------------------------------------------------###
+
+# Use volume to save sensor's data in the Docker container
+docker volume create --name db-data
+docker volume ls
+
 ### AWS Server using Apache server(httpd)
 
 # simple building
 docker build -f Dockerfile -t oqs-httpd .
 
-docker build --build-arg SIP=203.145.215.169 -f Dockerfile -t oqs-httpd .
+docker build --build-arg SIP=34.215.240.96 -f Dockerfile -t oqs-httpd .
 
 # simple running
-docker run -it[d] -p 4433:4433 --name server_httpd oqs-httpd
+docker run -p 4433:4433 -v db-data:/db/data -itd \
+--net=host \
+--name server_httpd \
+oqs-httpd
 
 # activate httpd server
 httpd -f httpd-conf/httpd.conf -D FOREGROUND
+
+###----------------------------------------------------###
+###----------------------------------------------------###
+### AWS Server (send sensor data)
+docker build -t https_sending -f Dockerfile .
+
+docker run -p 443:443 -v db-data:/db/data -itd \
+--net=host \
+--name https_send_data \
+https_sending
