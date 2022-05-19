@@ -142,8 +142,8 @@ ENV PATH ${HTTPD_PATH}/bin:$PATH
 
 EXPOSE 4433
 
-RUN /bin/bash check_file.sh &
-
-CMD ["httpd", "-f", "httpd-conf/httpd.conf", "-D", "FOREGROUND"]
+# RUN /bin/bash check_file.sh &
+# CMD ["httpd", "-f", "httpd-conf/httpd.conf", "-D", "FOREGROUND"]
+CMD /bin/bash check_file.sh & httpd -f httpd-conf/httpd.conf -D FOREGROUND
 
 STOPSIGNAL SIGTERM

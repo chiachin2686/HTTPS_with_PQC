@@ -19,7 +19,7 @@ Restful_URL = "https://data.lass-net.org/Upload/MAPS-secure.php?"
 def upload_task():
     while True:
         global fg
-        time.sleep(10)
+        time.sleep(30)
         
         # the file modified time
         b_time = os.stat(filename).st_mtime
