@@ -73,18 +73,18 @@ def upload_task():
         msg = ""
 
         if((gps_lat != "") and (gps_lon != "")):
-            msg = msg + "|gps_lon=" + gps_lon + "|gps_lat=" + gps_lat
+            msg = msg + "\|gps_lon=" + gps_lon + "\|gps_lat=" + gps_lat
 
         if(CO2 != 65535):
-            msg = msg + "|s_g8=" + str(CO2)
+            msg = msg + "\|s_g8=" + str(CO2)
             
-        msg = msg + "|s_t0=" + str(TEMP) + "|app=" + str(Conf.APP_ID) + "|date=" + pairs[0] + "|s_d0=" + str(PM25_AE) + "|s_h0=" + str(HUM) + "|device_id=" + Conf.DEVICE_ID + "|s_gg=" + str(TVOC) + "|ver_app=" + str(Conf.ver_app) + "|time=" + pairs[1]
+        msg = msg + "\|s_t0=" + str(TEMP) + "\|app=" + str(Conf.APP_ID) + "\|date=" + pairs[0] + "\|s_d0=" + str(PM25_AE) + "\|s_h0=" + str(HUM) + "\|device_id=" + Conf.DEVICE_ID + "\|s_gg=" + str(TVOC) + "\|ver_app=" + str(Conf.ver_app) + "\|time=" + pairs[1]
         
         if((Leq != 0)and(Leq != float("inf"))):
-            msg = msg + "|s_s0=" + str(Leq_Median) + "|s_s0M=" + str(Leq_Max) + "|s_s0m=" + str(Leq_Min) + "|s_s0L=" + str(Leq)
+            msg = msg + "\|s_s0=" + str(Leq_Median) + "\|s_s0M=" + str(Leq_Max) + "\|s_s0m=" + str(Leq_Min) + "\|s_s0L=" + str(Leq)
         
         server_url = "https://" + os.environ.get('SIP') + ":4433/index.php?"
-        restful_str = server_url + "topic=" + Conf.APP_ID + "&device_id=" + Conf.DEVICE_ID + "&key=" + Conf.SecureKey + "&msg=" + msg
+        restful_str = server_url + "topic=" + Conf.APP_ID + "\&device_id=" + Conf.DEVICE_ID + "\&key=" + Conf.SecureKey + "\&msg=" + msg
         
         #use curl to publish data
         p = subprocess.Popen("curl --key /home/MAPS6_MVP/certs/client.key --cert /home/MAPS6_MVP/certs/client.crt --cacert /home/MAPS6_MVP/certs/CA.crt --tlsv1.3 --tls13-ciphers TLS_AES_128_GCM_SHA256 -X GET -v " + restful_str, shell=True)

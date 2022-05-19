@@ -17,12 +17,11 @@ function file_changed(){
 
 function file_existed(){
     local file_path="/opt/httpd/logs/ssl_request_log"
-    local check_time=30
+    local check_time=60
     while [[ true ]]; do
         if [ -f ${file_path} ]; then  # file exists
-            cat ${file_path} | awk '{print $7}' > /db/data/sensor_data.txt
             echo "${file_path} exists."
-            rm /opt/httpd/logs/ssl_request_log
+            grep GET ${file_path} | tail -1 | awk '{print $7}' > /db/data/sensor_data.txt  # get the last data
         else
             echo "${file_path} does not exists."
         fi

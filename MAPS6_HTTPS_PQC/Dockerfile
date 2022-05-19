@@ -117,6 +117,7 @@ ENV CIP=${CIP}
 
 ## ------ Original Setting ------
 RUN apt-get update && apt-get install -y \
+    iputils-ping \
     python3-pip \
     python3-rpi.gpio \
     libtiff5-dev \ 

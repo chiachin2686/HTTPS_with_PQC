@@ -126,6 +126,8 @@ COPY --from=intermediate ${OPENSSL_PATH} ${OPENSSL_PATH}
 
 COPY httpd-conf/httpd-ssl.conf ${HTTPD_PATH}/httpd-conf/httpd-ssl.conf
 COPY httpd-conf/httpd.conf ${HTTPD_PATH}/httpd-conf/httpd.conf
+COPY . ${HTTPD_PATH}
+
 WORKDIR ${HTTPD_PATH}
 
 RUN sed -i 's/ServerName\ httpd.aws-demo.org/ServerName\ '${SIP}'/g' ${HTTPD_PATH}/httpd-conf/httpd.conf && \
