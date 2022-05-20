@@ -10,7 +10,7 @@ docker run -p 4433:4433 -itd --restart unless-stopped \
 --net=host \
 --name MAPS6_curl \
 --privileged \
--e SIP=34.215.240.96 -e CIP=60.250.152.171 \
+-e SIP=34.215.240.96 -e CIP=60.250.132.171 \
 oqs-curl
 
 # run with environment var.
@@ -26,7 +26,7 @@ curl --key client.key --cert client.crt --cacert CA.crt --tlsv1.3 --tls13-cipher
 #option [-k]: insecure
 
 # generate key & cert.
-openssl req -new -newkey dilithium2 -keyout client.key -out client.csr -nodes -subj "/O=test-client/CN=60.250.152.171"
+openssl req -new -newkey dilithium2 -keyout client.key -out client.csr -nodes -subj "/O=test-client/CN=60.250.132.171"
 
 openssl x509 -req -in client.csr -out client.crt -CA CA.crt -CAkey CA.key -CAcreateserial -days 365
 
